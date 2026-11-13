@@ -1,0 +1,13 @@
+/sub2surge
+*.test
+*.out
+.DS_Store
+desktop/build/
+desktop/.mygo/
+.idea/
+
+# 本地运行产物 / 配置（可能含订阅链接与 token）
+config.json
+Surge*.conf
+surge-nodes*.txt
+desktop/mygo.lock

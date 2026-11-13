@@ -1,0 +1,166 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>Sub2Surge</title>
+  <link rel="stylesheet" href="./style.css">
+</head>
+<body>
+  <div class="app">
+    <header class="masthead">
+      <div class="brand">
+        <span class="mark" aria-hidden="true">
+          <span></span><span></span><span></span>
+        </span>
+        <div class="brand-text">
+          <h1>sub2surge</h1>
+          <p>V2Ray 订阅 → Surge 可导入文件</p>
+        </div>
+      </div>
+      <div class="local-badge" title="订阅请求由本机发出，不经过第三方服务">
+        <span class="dot" aria-hidden="true"></span>
+        本地处理
+      </div>
+    </header>
+
+    <main class="workspace">
+      <section class="controls" aria-label="输入">
+        <form id="form" novalidate>
+          <label class="field">
+            <span class="label" id="url-label">订阅链接</span>
+            <input id="url" name="url" type="url" inputmode="url"
+                   placeholder="https://…/subscribe?token=…"
+                   autocomplete="off" autocapitalize="off" spellcheck="false" required>
+          </label>
+
+          <label class="merge-toggle">
+            <input id="merge" type="checkbox">
+            <span>合并第二个订阅</span>
+          </label>
+
+          <div id="merge-fields" class="merge-fields" hidden>
+            <div class="merge-grid">
+              <label class="field compact">
+                <span class="label">来源 A 标签</span>
+                <input id="label1" type="text" value="订阅 A" spellcheck="false">
+              </label>
+              <label class="field compact">
+                <span class="label">来源 B 标签</span>
+                <input id="label2" type="text" value="订阅 B" spellcheck="false">
+              </label>
+            </div>
+            <label class="field compact">
+              <span class="label">第二个订阅链接</span>
+              <input id="url2" type="url" inputmode="url"
+                     placeholder="https://…/subscribe?token=…"
+                     autocomplete="off" autocapitalize="off" spellcheck="false">
+            </label>
+            <p class="hint">节点名会变成「标签 - 原名」，方便区分来源。</p>
+          </div>
+
+          <div class="primary-row">
+            <button id="convert" class="button primary" type="submit">
+              <span class="button-label">转换</span>
+              <span class="spinner" aria-hidden="true"></span>
+            </button>
+            <button id="save" class="button" type="button" disabled>保存文件</button>
+          </div>
+
+          <p class="hint">转换结果不会上传。订阅链接包含凭据，请勿分享。</p>
+
+          <div class="rules-block">
+          <label class="rule-option">
+            <input id="rules" type="checkbox" checked>
+            <span class="rule-copy">
+              <span class="rule-title">写入默认规则</span>
+              <span class="rule-desc">来自当前 Surge 配置的 AI / 社媒 / 媒体规则</span>
+            </span>
+          </label>
+
+          <details id="groups-menu" class="groups-menu">
+            <summary>
+              <span class="groups-summary-title">选择策略组</span>
+              <span id="group-count" class="group-count">全部</span>
+            </summary>
+            <div class="group-toolbar">
+              <button id="groups-all" class="text-button" type="button">全选</button>
+              <button id="groups-none" class="text-button" type="button">全不选</button>
+            </div>
+            <div id="group-list" class="group-list" role="group" aria-label="策略组"></div>
+            <p class="group-note">全不选时仍保留 GEOIP CN 直连和 FINAL 兜底。</p>
+          </details>
+          </div>
+
+          <details class="advanced">
+            <summary>高级选项</summary>
+            <div class="advanced-body">
+              <label class="field compact">
+                <span class="label">User-Agent</span>
+                <input id="ua" type="text" placeholder="v2rayN/6.31" spellcheck="false">
+              </label>
+              <label class="field compact">
+                <span class="label">名称前缀</span>
+                <input id="prefix" type="text" placeholder="例如 HK-">
+              </label>
+              <label class="field compact">
+                <span class="label">保留（正则）</span>
+                <input id="filter" type="text" placeholder="HK|US" spellcheck="false">
+              </label>
+              <label class="field compact">
+                <span class="label">排除（正则）</span>
+                <input id="exclude" type="text" placeholder="过期|剩余" spellcheck="false">
+              </label>
+              <div class="checks">
+                <label><input id="sort" type="checkbox"> 按名称排序</label>
+                <label><input id="udp" type="checkbox"> 开启 UDP</label>
+                <label><input id="tfo" type="checkbox"> 开启 TFO</label>
+                <label><input id="insecure" type="checkbox"> 跳过证书校验</label>
+              </div>
+            </div>
+          </details>
+        </form>
+
+        <div id="status" class="status" role="status" aria-live="polite"></div>
+        <div id="summary" class="summary" hidden></div>
+
+        <div class="capabilities">
+          <span class="cap-label">可转换的协议</span>
+          <p class="cap-protocols">SS · VMess · VLESS · Trojan<br>Hysteria2 · TUIC · AnyTLS · SOCKS5</p>
+          <p class="cap-note">不支持的节点会列在结果里，不会静默丢弃。</p>
+        </div>
+      </section>
+
+      <section class="output" aria-label="输出">
+        <div class="output-head">
+          <div class="segmented" role="tablist" aria-label="输出格式">
+            <button id="tab-conf" class="segment active" type="button" role="tab"
+                    aria-selected="true" data-mode="conf">Surge 配置</button>
+            <button id="tab-list" class="segment" type="button" role="tab"
+                    aria-selected="false" data-mode="list">节点列表</button>
+          </div>
+          <div class="output-tools">
+            <label class="wrap-toggle"><input id="wrap" type="checkbox"> 自动换行</label>
+            <button id="copy" class="button quiet small" type="button" disabled>复制</button>
+          </div>
+        </div>
+
+        <pre id="preview" class="preview" tabindex="0"><span class="preview-empty">转换结果会显示在这里。</span></pre>
+
+        <div class="output-foot">
+          <span id="filename" class="filename">Surge.conf</span>
+          <span id="counts" class="counts"></span>
+        </div>
+      </section>
+    </main>
+
+    <footer class="foot">
+      <span>Surge 导入：配置 → + → 从文件导入</span>
+      <span id="version" class="version"></span>
+    </footer>
+  </div>
+
+  <script src="./app.js"></script>
+</body>
+</html>

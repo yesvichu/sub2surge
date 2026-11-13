@@ -1,0 +1,32 @@
+# 国产 AI 服务规则集 —— 必须直连（用户明确要求）
+# 验证方法：`surge-cli http probe <url> DIRECT` 全部返回 200/401/404（连通）
+# ASN 核实：GLM/Kimi 为阿里云/国内 IDC；DeepSeek 在 AWS 但直连可达
+# ── DeepSeek（实测直连 200/401，220-390ms）──
+DOMAIN-SUFFIX,deepseek.com
+# ── 智谱 GLM（ASN: Zhejiang Taobao / Alibaba，实测直连 200）──
+DOMAIN-SUFFIX,bigmodel.cn
+DOMAIN-SUFFIX,zhipuai.cn
+DOMAIN-SUFFIX,chatglm.cn
+DOMAIN-SUFFIX,chatglm.com
+# ── Kimi / Moonshot（ASN: 石家庄 IDC / 杭州阿里云，实测直连 200）──
+DOMAIN-SUFFIX,moonshot.cn
+DOMAIN-SUFFIX,moonshot.ai
+DOMAIN-SUFFIX,kimi.com
+# ── 阿里通义千问 ──
+DOMAIN-SUFFIX,tongyi.aliyun.com
+DOMAIN-SUFFIX,dashscope.aliyuncs.com
+DOMAIN-SUFFIX,bailian.console.aliyun.com
+# ── 百度文心 ──
+DOMAIN-SUFFIX,yiyan.baidu.com
+DOMAIN-SUFFIX,qianfan.baidubce.com
+DOMAIN-SUFFIX,aip.baidubce.com
+# ── 字节豆包 ──
+DOMAIN-SUFFIX,doubao.com
+DOMAIN-SUFFIX,volcengineapi.com
+DOMAIN-SUFFIX,ark.cn-beijing.volces.com
+# ── 腾讯混元 ──
+DOMAIN-SUFFIX,hunyuan.tencent.com
+# ── MiniMax / 阶跃星辰 / 零一万物 ──
+DOMAIN-SUFFIX,minimaxi.com
+DOMAIN-SUFFIX,stepfun.com
+DOMAIN-SUFFIX,01.ai

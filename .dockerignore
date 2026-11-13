@@ -1,0 +1,6 @@
+sub2surge
+.git
+*.test
+*.out
+.DS_Store
+desktop/

@@ -1,0 +1,8 @@
+{
+  "name": "Sub2Surge",
+  "slug": "sub2surge",
+  "identifier": "com.yesvichu.sub2surge",
+  "version": "0.2.0",
+  "main": ".",
+  "out": "build"
+}

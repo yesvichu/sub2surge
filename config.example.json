@@ -1,0 +1,20 @@
+{
+  "listen": "127.0.0.1:8080",
+  "token": "",
+  "default_ua": "v2rayN/6.31",
+  "cache_ttl": "1h",
+  "subscriptions": [
+    {
+      "name": "default",
+      "url": "https://example.com/api/v1/client/subscribe?token=REPLACE_ME",
+      "ua": "v2rayN/6.31",
+      "prefix": "",
+      "filter": "",
+      "exclude": "",
+      "sort": false,
+      "insecure": false,
+      "udp": false,
+      "tfo": false
+    }
+  ]
+}
