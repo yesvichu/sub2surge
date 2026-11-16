@@ -657,6 +657,127 @@ summary:focus-visible,
   accent-color: var(--accent);
 }
 
+/* Subscription history */
+
+.history-menu {
+  border-top: 1px solid var(--line);
+  border-bottom: 1px solid var(--line);
+  padding: 6px 0 9px;
+}
+
+.history-menu summary {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 0 6px;
+  color: var(--muted);
+  font-size: 12px;
+  list-style: none;
+  cursor: pointer;
+  user-select: none;
+}
+
+.history-menu summary::-webkit-details-marker {
+  display: none;
+}
+
+.history-menu summary::before {
+  content: "›";
+  display: inline-block;
+  width: 13px;
+  font-size: 15px;
+  line-height: 1;
+  transform: translateY(-1px);
+}
+
+.history-menu[open] summary::before {
+  transform: rotate(90deg) translateX(1px);
+}
+
+.groups-summary-title {
+  font-weight: 560;
+}
+
+.history-list {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  max-height: 210px;
+  overflow-y: auto;
+}
+
+.history-empty {
+  padding: 6px 12px 4px 15px;
+  color: var(--muted);
+  font-size: 11.5px;
+  line-height: 1.4;
+}
+
+.history-row {
+  display: flex;
+  align-items: stretch;
+  gap: 4px;
+  border-radius: 6px;
+}
+
+.history-row:hover {
+  background: rgba(127, 127, 127, 0.08);
+}
+
+.history-apply {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  flex: 1;
+  min-width: 0;
+  padding: 6px 4px 6px 12px;
+  border: 0;
+  background: none;
+  color: var(--ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.history-title {
+  font-size: 12.5px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.history-meta {
+  color: var(--muted);
+  font-size: 10.5px;
+  line-height: 1.35;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.history-forget {
+  flex: none;
+  width: 26px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--muted);
+  font-size: 17px;
+  line-height: 1;
+  cursor: pointer;
+}
+
+.history-forget:hover {
+  color: var(--danger);
+}
+
+.history-toolbar {
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+  padding: 6px 4px 0;
+}
+
 /* Status & summary */
 
 .status {

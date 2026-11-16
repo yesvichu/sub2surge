@@ -11,3 +11,6 @@ config.json
 Surge*.conf
 surge-nodes*.txt
 desktop/mygo.lock
+
+# Playwright MCP 调试产物
+.playwright-mcp/

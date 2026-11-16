@@ -4,7 +4,9 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"log"
 	"os"
+	"path/filepath"
 	"strings"
 	"time"
 
@@ -18,11 +20,28 @@ import (
 // available to the page as Converter.<method>.
 type Converter struct {
 	service *convert.Service
+	history *historyStore
 }
 
 // NewConverter creates the service with a one-hour upstream cache.
 func NewConverter() *Converter {
-	return &Converter{service: convert.New(time.Hour, "v2rayN/6.31")}
+	dir, err := mygo.App.Path(mygo.PathUserData)
+	if err != nil {
+		// PathUserData is only a convenience; keep the app usable if the
+		// platform cannot resolve its user data directory.
+		log.Printf("history: user data directory: %v", err)
+		dir = os.TempDir()
+	}
+	return newConverter(dir)
+}
+
+// newConverter builds the service with its history stored in dir. Tests use
+// it to keep their history out of the real user data directory.
+func newConverter(dir string) *Converter {
+	return &Converter{
+		service: convert.New(time.Hour, "v2rayN/6.31"),
+		history: newHistoryStore(filepath.Join(dir, historyFilename)),
+	}
 }
 
 // ConvertRequest is the form state sent by the page.
@@ -124,6 +143,13 @@ func (c *Converter) Convert(ctx context.Context, req ConvertRequest) (ConvertRes
 		})
 	}
 
+	// A successful pull goes into history so it can be reused or refreshed
+	// without typing the subscription URL again. A failed history write must
+	// not throw away an otherwise successful conversion.
+	if _, err := c.history.record(req, len(result.Lines)); err != nil {
+		log.Printf("history: %v", err)
+	}
+
 	return ConvertResponse{
 		Config: surgefile.RenderProfile(result.Lines, result.Names, surgefile.ProfileOptions{
 			Title:       "Sub2Surge export",
@@ -171,6 +197,21 @@ func (c *Converter) Save(ctx context.Context, filename, content string) (string,
 		return "", fmt.Errorf("写入失败：%w", err)
 	}
 	return path, nil
+}
+
+// History lists previously used subscriptions, most recent first.
+func (c *Converter) History() []HistoryEntry {
+	return c.history.list()
+}
+
+// ForgetHistory removes one entry from the history.
+func (c *Converter) ForgetHistory(id string) ([]HistoryEntry, error) {
+	return c.history.remove(id)
+}
+
+// ClearHistory removes every entry from the history.
+func (c *Converter) ClearHistory() ([]HistoryEntry, error) {
+	return c.history.clear()
 }
 
 // Version is shown in the footer.

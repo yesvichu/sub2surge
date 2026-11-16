@@ -60,6 +60,18 @@
             <p class="hint">节点名会变成「标签 - 原名」，方便区分来源。</p>
           </div>
 
+          <details id="history-menu" class="history-menu">
+            <summary>
+              <span class="groups-summary-title">历史记录</span>
+              <span id="history-count" class="group-count">0</span>
+            </summary>
+            <div id="history-list" class="history-list" role="group" aria-label="订阅历史记录"></div>
+            <div class="history-toolbar">
+              <button id="history-clear" class="text-button" type="button">清空历史</button>
+            </div>
+            <p class="group-note">点击历史项即可填入订阅参数，再次转换即可更新。</p>
+          </details>
+
           <div class="primary-row">
             <button id="convert" class="button primary" type="submit">
               <span class="button-label">转换</span>
