@@ -8,6 +8,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 
 	"github.com/egoist/mygo"
@@ -21,6 +22,10 @@ import (
 type Converter struct {
 	service *convert.Service
 	history *historyStore
+
+	// Surge is detected on first use, so startup runs no subprocess.
+	surgeMu      sync.Mutex
+	surgeInstall *surgeSetup
 }
 
 // NewConverter creates the service with a one-hour upstream cache.

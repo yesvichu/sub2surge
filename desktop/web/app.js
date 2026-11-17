@@ -31,6 +31,9 @@
     groupsNone: $("groups-none"),
     convert: $("convert"),
     save: $("save"),
+    surgeApply: $("surge-apply"),
+    surgeTarget: $("surge-target"),
+    surgeHint: $("surge-hint"),
     copy: $("copy"),
     wrap: $("wrap"),
     status: $("status"),
@@ -54,6 +57,7 @@
     groupSpec: "all",
     history: [],
     pendingGroups: null,
+    surge: null,
   };
 
   const runtime = window.mygo;
@@ -104,6 +108,70 @@
     const hasText = Boolean(currentText());
     els.save.disabled = state.busy || !hasText;
     els.copy.disabled = state.busy || !hasText;
+    els.surgeApply.disabled =
+      state.busy || !state.config || !state.surge || !state.surge.installed;
+  }
+
+  function describeSurge(surge) {
+    if (!surge || !surge.installed) {
+      els.surgeTarget.textContent = "不可用";
+      els.surgeHint.textContent =
+        (surge && surge.problem) || "没有检测到 Surge 或它的命令行工具。";
+      return;
+    }
+    els.surgeTarget.textContent = `当前配置：${surge.current_name || "未知"}`;
+    els.surgeHint.textContent = surge.managed
+      ? "写入这份配置并让 Surge 热重载；原配置会自动备份。"
+      : `「${surge.current_name}」不是 Sub2Surge 生成的，写入前会再确认一次。`;
+  }
+
+  function loadSurgeStatus() {
+    return call("Converter.SurgeStatus")
+      .then((surge) => {
+        state.surge = surge || null;
+        describeSurge(state.surge);
+        syncButtons();
+      })
+      .catch((err) => {
+        state.surge = null;
+        els.surgeTarget.textContent = "不可用";
+        els.surgeHint.textContent = (err && err.message) || String(err);
+        syncButtons();
+      });
+  }
+
+  async function applyToSurge() {
+    if (state.busy) return;
+    if (!state.config) {
+      setStatus("请先转换，再写入 Surge。", "error");
+      return;
+    }
+
+    let force = false;
+    if (state.surge && state.surge.installed && state.surge.managed === false) {
+      const name = state.surge.current_name || "当前配置";
+      const ok = window.confirm(
+        `「${name}」不是 Sub2Surge 生成的，继续会整份覆盖它（原文件会备份）。确定吗？`
+      );
+      if (!ok) return;
+      force = true;
+    }
+
+    setBusy(true);
+    setStatus("正在写入 Surge 并重载…", "busy");
+    try {
+      const res = await call("Converter.ApplyToSurge", {
+        config: state.config,
+        force,
+      });
+      const backup = res && res.backup_path ? `，原配置已备份` : "";
+      setStatus(`已写入「${res.profile_name}」并让 Surge 重载生效${backup}。`, "ok");
+      loadSurgeStatus();
+    } catch (err) {
+      setStatus((err && err.message) || String(err), "error");
+    } finally {
+      setBusy(false);
+    }
   }
 
   function updateGroupCount() {
@@ -594,6 +662,7 @@
   }
 
   els.save.addEventListener("click", save);
+  els.surgeApply.addEventListener("click", applyToSurge);
   els.historyClear.addEventListener("click", clearHistory);
   els.copy.addEventListener("click", copy);
   els.rules.addEventListener("change", syncGroupsDisabled);
@@ -646,6 +715,7 @@
   syncMergeFields(false);
   loadRuleGroups();
   loadHistory();
+  loadSurgeStatus();
   syncGroupsDisabled();
   renderPreview();
   els.url.focus();
