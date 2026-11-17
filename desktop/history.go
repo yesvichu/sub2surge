@@ -1,16 +1,19 @@
 package main
 
 import (
+	"bytes"
+	"cmp"
 	"crypto/sha256"
 	"encoding/hex"
-	"encoding/json"
+	"encoding/json/jsontext"
+	"encoding/json/v2"
 	"errors"
 	"fmt"
 	"log"
 	"net/url"
 	"os"
 	"path/filepath"
-	"sort"
+	"slices"
 	"strings"
 	"sync"
 	"time"
@@ -79,7 +82,9 @@ func (s *historyStore) load() error {
 		return fmt.Errorf("read %s: %w", s.path, err)
 	}
 	var entries []HistoryEntry
-	if err := json.Unmarshal(raw, &entries); err != nil {
+	// RejectUnknownMembers is off so a file written by a newer build still
+	// loads: a stale history is worth more than a hard failure.
+	if err := json.Unmarshal(raw, &entries, json.RejectUnknownMembers(false)); err != nil {
 		return fmt.Errorf("parse %s: %w", s.path, err)
 	}
 	s.entries = make([]HistoryEntry, 0, len(entries))
@@ -106,7 +111,7 @@ func (s *historyStore) load() error {
 func (s *historyStore) list() []HistoryEntry {
 	s.mu.Lock()
 	defer s.mu.Unlock()
-	entries := append([]HistoryEntry(nil), s.entries...)
+	entries := slices.Clone(s.entries)
 	sortHistory(entries)
 	return entries
 }
@@ -121,7 +126,7 @@ func (s *historyStore) record(req ConvertRequest, nodes int) ([]HistoryEntry, er
 	s.mu.Lock()
 	defer s.mu.Unlock()
 
-	entries := append([]HistoryEntry(nil), s.entries...)
+	entries := slices.Clone(s.entries)
 	index := -1
 	for i := range entries {
 		if historyKey(entries[i]) == key {
@@ -135,10 +140,7 @@ func (s *historyStore) record(req ConvertRequest, nodes int) ([]HistoryEntry, er
 	entry.UpdatedAt = now.Format(time.RFC3339)
 	entry.UpdatedNS = now.UnixNano()
 	if index >= 0 {
-		entry.Times = entries[index].Times + 1
-		if entry.Times < 1 {
-			entry.Times = 1
-		}
+		entry.Times = max(entries[index].Times+1, 1)
 		// Keep the name given when the entry was first created: an updated
 		// label is often just a UI tweak for the same subscription.
 		entry.Name = entries[index].Name
@@ -156,7 +158,7 @@ func (s *historyStore) record(req ConvertRequest, nodes int) ([]HistoryEntry, er
 	if err := s.saveLocked(); err != nil {
 		return nil, err
 	}
-	return append([]HistoryEntry(nil), s.entries...), nil
+	return slices.Clone(s.entries), nil
 }
 
 func (s *historyStore) remove(id string) ([]HistoryEntry, error) {
@@ -173,7 +175,7 @@ func (s *historyStore) remove(id string) ([]HistoryEntry, error) {
 	if err := s.saveLocked(); err != nil {
 		return nil, err
 	}
-	return append([]HistoryEntry(nil), s.entries...), nil
+	return slices.Clone(s.entries), nil
 }
 
 func (s *historyStore) clear() ([]HistoryEntry, error) {
@@ -192,10 +194,12 @@ func (s *historyStore) saveLocked() error {
 	if err := os.MkdirAll(filepath.Dir(s.path), 0o700); err != nil {
 		return fmt.Errorf("create history dir: %w", err)
 	}
-	data, err := json.MarshalIndent(s.entries, "", "  ")
-	if err != nil {
+	var buf bytes.Buffer
+	encoder := jsontext.NewEncoder(&buf, jsontext.WithIndent("  "))
+	if err := json.MarshalEncode(encoder, s.entries); err != nil {
 		return fmt.Errorf("encode history: %w", err)
 	}
+	data := buf.Bytes()
 	tmp, err := os.CreateTemp(filepath.Dir(s.path), ".history-*.tmp")
 	if err != nil {
 		return fmt.Errorf("create history file: %w", err)
@@ -282,12 +286,13 @@ func sourceTitle(rawURL, label string) string {
 	return "未命名订阅"
 }
 
+// sortHistory orders entries by most recent use, then by use count so that a
+// tie in time still has a meaningful order.
 func sortHistory(entries []HistoryEntry) {
-	sort.SliceStable(entries, func(i, j int) bool {
-		if entries[i].UpdatedNS != entries[j].UpdatedNS {
-			return entries[i].UpdatedNS > entries[j].UpdatedNS
+	slices.SortStableFunc(entries, func(a, b HistoryEntry) int {
+		if a.UpdatedNS != b.UpdatedNS {
+			return cmp.Compare(b.UpdatedNS, a.UpdatedNS)
 		}
-		// A tie in time still needs a stable, meaningful order.
-		return entries[i].Times > entries[j].Times
+		return cmp.Compare(b.Times, a.Times)
 	})
 }

@@ -149,7 +149,7 @@ func selectionTokens(spec string) (tokens []string, all, none bool) {
 	case "none":
 		return nil, false, true
 	}
-	for _, part := range strings.Split(spec, ",") {
+	for part := range strings.SplitSeq(spec, ",") {
 		if part = strings.TrimSpace(part); part != "" {
 			tokens = append(tokens, part)
 		}
@@ -195,7 +195,7 @@ func DefaultRulesFor(selection Selection) string {
 		if err != nil {
 			continue
 		}
-		for _, line := range strings.Split(string(content), "\n") {
+		for line := range strings.SplitSeq(string(content), "\n") {
 			line = strings.TrimSpace(strings.TrimSuffix(line, "\r"))
 			if line == "" || strings.HasPrefix(line, "#") || strings.HasPrefix(line, "//") {
 				continue

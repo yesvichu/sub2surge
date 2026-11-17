@@ -30,7 +30,7 @@ func newTestServer(t *testing.T, token string) (*httptest.Server, *int32) {
 	t.Helper()
 
 	var hits int32
-	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		atomic.AddInt32(&hits, 1)
 		_, _ = io.WriteString(w, testBody())
 	}))
@@ -119,7 +119,7 @@ func TestProfileOutput(t *testing.T) {
 	if response.StatusCode != http.StatusOK {
 		t.Fatalf("status = %d, body = %s", response.StatusCode, body)
 	}
-	firstLine := strings.SplitN(body, "\n", 2)[0]
+	firstLine, _, _ := strings.Cut(body, "\n")
 	if !strings.HasPrefix(firstLine, "#!MANAGED-CONFIG ") || !strings.Contains(firstLine, "format=profile") {
 		t.Fatalf("unexpected managed-config line: %q", firstLine)
 	}
@@ -240,7 +240,7 @@ func readAll(t *testing.T, response *http.Response) string {
 
 func TestMergeQueryLabelsSources(t *testing.T) {
 	ts, _ := newTestServer(t, "")
-	second := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	second := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		body := base64.StdEncoding.EncodeToString([]byte("trojan://b@b.example.com:443#Node B"))
 		_, _ = io.WriteString(w, body)
 	}))

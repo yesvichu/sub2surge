@@ -12,15 +12,15 @@ import (
 )
 
 func TestFetchCacheAndStale(t *testing.T) {
-	var hits int32
-	var fail int32
+	var hits atomic.Int32
+	var fail atomic.Int32
 	body := "hello"
 	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		atomic.AddInt32(&hits, 1)
+		hits.Add(1)
 		if r.Header.Get("User-Agent") != "test-ua" {
 			t.Errorf("User-Agent = %q", r.Header.Get("User-Agent"))
 		}
-		if atomic.LoadInt32(&fail) == 1 {
+		if fail.Load() == 1 {
 			http.Error(w, "boom", http.StatusInternalServerError)
 			return
 		}
@@ -46,20 +46,20 @@ func TestFetchCacheAndStale(t *testing.T) {
 	if !second.Cached || string(second.Body) != body {
 		t.Fatalf("unexpected second result: %+v", second)
 	}
-	if hits != 1 {
-		t.Fatalf("upstream hits = %d, want 1", hits)
+	if hits.Load() != 1 {
+		t.Fatalf("upstream hits = %d, want 1", hits.Load())
 	}
 
 	// noCache refreshes.
 	if _, err := fetcher.Fetch(ctx, "k", server.URL, "test-ua", true); err != nil {
 		t.Fatalf("noCache fetch: %v", err)
 	}
-	if hits != 2 {
-		t.Fatalf("upstream hits = %d, want 2", hits)
+	if hits.Load() != 2 {
+		t.Fatalf("upstream hits = %d, want 2", hits.Load())
 	}
 
 	// Fail the upstream: the cached copy should be served as stale.
-	atomic.StoreInt32(&fail, 1)
+	fail.Store(1)
 	stale, err := fetcher.Fetch(ctx, "k", server.URL, "test-ua", true)
 	if err != nil {
 		t.Fatalf("stale fetch: %v", err)
@@ -70,7 +70,7 @@ func TestFetchCacheAndStale(t *testing.T) {
 }
 
 func TestFetchErrorDoesNotLeakToken(t *testing.T) {
-	server := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {}))
+	server := httptest.NewServer(http.HandlerFunc(func(_ http.ResponseWriter, _ *http.Request) {}))
 	url := server.URL + "/sub?token=super-secret"
 	server.Close()
 

@@ -34,7 +34,7 @@ type ProfileOptions struct {
 //	[Proxy]
 //	[Proxy Group]
 //	[Rule]
-func RenderProfile(lines, names []string, opts ProfileOptions) string {
+func RenderProfile(lines []string, opts ProfileOptions) string {
 	generated := opts.GeneratedAt
 	if generated.IsZero() {
 		generated = time.Now()
@@ -138,7 +138,7 @@ func SummarizeSkips(skips []model.Skip, limit int) []string {
 	result := make([]string, 0, len(order))
 	for _, key := range order {
 		item := buckets[key]
-		scheme := strings.SplitN(key, "\x00", 2)[0]
+		scheme, _, _ := strings.Cut(key, "\x00")
 		result = append(result, fmt.Sprintf("%s x%d (%s)", scheme, item.count, item.reason))
 		if limit > 0 && len(result) == limit {
 			if remaining := len(order) - len(result); remaining > 0 {

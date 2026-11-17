@@ -14,7 +14,7 @@ func TestRenderProfile(t *testing.T) {
 	}
 	names := []string{"HK", "JP"}
 
-	profile := RenderProfile(lines, names, ProfileOptions{Title: "test"})
+	profile := RenderProfile(lines, ProfileOptions{Title: "test"})
 	for _, want := range []string{
 		"# test",
 		"[General]",
@@ -31,7 +31,7 @@ func TestRenderProfile(t *testing.T) {
 		t.Fatalf("plain profile must not be managed:\n%s", profile)
 	}
 
-	withRules := RenderProfile(lines, names, ProfileOptions{
+	withRules := RenderProfile(lines, ProfileOptions{
 		Rules:       DefaultRules,
 		ExtraGroups: DefaultProxyGroups(names),
 	})
@@ -57,8 +57,8 @@ func TestRenderProfile(t *testing.T) {
 		t.Fatalf("Proxy/Auto groups must not be generated:\n%s", withRules)
 	}
 
-	managed := RenderProfile(lines, names, ProfileOptions{ManagedConfigURL: "https://example.com/sub?format=profile"})
-	first := strings.SplitN(managed, "\n", 2)[0]
+	managed := RenderProfile(lines, ProfileOptions{ManagedConfigURL: "https://example.com/sub?format=profile"})
+	first, _, _ := strings.Cut(managed, "\n")
 	if !strings.HasPrefix(first, "#!MANAGED-CONFIG https://example.com/sub?format=profile ") {
 		t.Fatalf("unexpected managed header: %q", first)
 	}

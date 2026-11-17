@@ -25,10 +25,10 @@ func parseSS(line string) (model.Proxy, error) {
 		hostPort = body[at+1:]
 
 		if decoded, ok := decodeBase64Text(userinfo); ok && strings.Contains(decoded, ":") {
-			method, password = cutFirst(decoded, ":")
+			method, password, _ = strings.Cut(decoded, ":")
 		} else {
 			userinfo = decodeComponent(userinfo)
-			method, password = cutFirst(userinfo, ":")
+			method, password, _ = strings.Cut(userinfo, ":")
 		}
 	} else {
 		decoded, ok := decodeBase64Text(body)
@@ -45,7 +45,7 @@ func parseSS(line string) (model.Proxy, error) {
 		if at := strings.LastIndexByte(decoded, '@'); at >= 0 {
 			userinfo := decoded[:at]
 			hostPort = decoded[at+1:]
-			method, password = cutFirst(userinfo, ":")
+			method, password, _ = strings.Cut(userinfo, ":")
 		} else {
 			return model.Proxy{}, fmt.Errorf("ss: missing server part")
 		}
@@ -88,7 +88,7 @@ func parseSS(line string) (model.Proxy, error) {
 			proxy.Plugin = strings.TrimSpace(parts[0])
 			proxy.PluginOpts = make(map[string]string)
 			for _, item := range parts[1:] {
-				key, value := cutFirst(item, "=")
+				key, value, _ := strings.Cut(item, "=")
 				if key = strings.TrimSpace(key); key != "" {
 					proxy.PluginOpts[key] = value
 				}
@@ -99,16 +99,9 @@ func parseSS(line string) (model.Proxy, error) {
 	return proxy, nil
 }
 
-func cutFirst(s, sep string) (string, string) {
-	if i := strings.Index(s, sep); i >= 0 {
-		return s[:i], s[i+len(sep):]
-	}
-	return s, ""
-}
-
 func parseQueryLoose(raw string) map[string]string {
 	values := make(map[string]string)
-	for _, item := range strings.Split(raw, "&") {
+	for item := range strings.SplitSeq(raw, "&") {
 		if item == "" {
 			continue
 		}

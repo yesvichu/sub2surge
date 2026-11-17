@@ -18,7 +18,7 @@ func parseSSR(line string) (model.Proxy, error) {
 		return model.Proxy{}, unsupported("ssr", fragmentName(line), "Surge does not support SSR (only SurgeMac via mihomo external)")
 	}
 
-	main := strings.SplitN(decoded, "/?", 2)[0]
+	main, _, _ := strings.Cut(decoded, "/?")
 	parts := strings.SplitN(main, ":", 6)
 	if len(parts) < 6 {
 		return model.Proxy{}, unsupported("ssr", fragmentName(line), "Surge does not support SSR (only SurgeMac via mihomo external)")
@@ -26,8 +26,8 @@ func parseSSR(line string) (model.Proxy, error) {
 
 	port, _ := strconv.Atoi(parts[1])
 	name := ""
-	if at := strings.Index(decoded, "remarks="); at >= 0 {
-		remarks := decoded[at+len("remarks="):]
+	if _, after, ok := strings.Cut(decoded, "remarks="); ok {
+		remarks := after
 		if amp := strings.IndexByte(remarks, '&'); amp >= 0 {
 			remarks = remarks[:amp]
 		}

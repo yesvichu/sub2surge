@@ -1,7 +1,6 @@
 package main
 
 import (
-	"context"
 	"encoding/base64"
 	"fmt"
 	"io"
@@ -27,7 +26,7 @@ func subBody(host string, names ...string) string {
 // the fetch, parse, convert and history path end to end.
 func newUpstream(t *testing.T, body string) *httptest.Server {
 	t.Helper()
-	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = io.WriteString(w, body)
 	}))
 	t.Cleanup(srv.Close)
@@ -40,7 +39,7 @@ func newUpstream(t *testing.T, body string) *httptest.Server {
 func TestConvertRecordsHistoryEndToEnd(t *testing.T) {
 	dir := t.TempDir()
 	c := newConverter(dir)
-	ctx := context.Background()
+	ctx := t.Context()
 
 	first := newUpstream(t, subBody("a.example.com", "HK-1", "HK-2"))
 	second := newUpstream(t, subBody("b.example.com", "US-1"))
@@ -161,13 +160,13 @@ func findEntry(t *testing.T, entries []HistoryEntry, want func(HistoryEntry) boo
 // TestConvertFailureIsNotRecorded keeps failed pulls, such as a wrong token,
 // out of the history so it holds only what actually worked.
 func TestConvertFailureIsNotRecorded(t *testing.T) {
-	failing := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	failing := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		http.Error(w, "forbidden", http.StatusForbidden)
 	}))
 	defer failing.Close()
 
 	c := newConverter(t.TempDir())
-	if _, err := c.Convert(context.Background(), ConvertRequest{URL: failing.URL}); err == nil {
+	if _, err := c.Convert(t.Context(), ConvertRequest{URL: failing.URL}); err == nil {
 		t.Fatal("Convert succeeded against a 403 upstream")
 	}
 	if got := c.History(); len(got) != 0 {

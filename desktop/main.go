@@ -1,3 +1,5 @@
+// Command Sub2Surge is the macOS desktop app: it serves the embedded page and
+// binds the Conversion service the page calls.
 package main
 
 import (

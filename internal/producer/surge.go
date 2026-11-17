@@ -5,7 +5,7 @@ package producer
 
 import (
 	"fmt"
-	"sort"
+	"slices"
 	"strings"
 
 	"github.com/yesvichu/sub2surge/internal/model"
@@ -456,7 +456,7 @@ func formatHeaders(headers map[string]string) string {
 	for key := range headers {
 		keys = append(keys, key)
 	}
-	sort.Strings(keys)
+	slices.Sort(keys)
 
 	parts := make([]string, 0, len(keys))
 	for _, key := range keys {

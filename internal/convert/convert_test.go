@@ -26,7 +26,7 @@ func fixtureBody() string {
 
 func TestRunAndCache(t *testing.T) {
 	var hits int32
-	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		atomic.AddInt32(&hits, 1)
 		_, _ = io.WriteString(w, fixtureBody())
 	}))
@@ -67,7 +67,7 @@ func TestRunAndCache(t *testing.T) {
 }
 
 func TestRunValidation(t *testing.T) {
-	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = io.WriteString(w, fixtureBody())
 	}))
 	defer upstream.Close()
@@ -107,11 +107,11 @@ func TestRunMergeLabelsAndDeduplicates(t *testing.T) {
 	body := func(uri string) string {
 		return base64.StdEncoding.EncodeToString([]byte(uri + "\ntrojan://shared@shared.example.com:443#Shared"))
 	}
-	first := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	first := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = io.WriteString(w, body("trojan://a@a.example.com:443#NodeA"))
 	}))
 	defer first.Close()
-	second := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	second := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = io.WriteString(w, body("trojan://b@b.example.com:443#NodeB"))
 	}))
 	defer second.Close()
@@ -150,11 +150,11 @@ func TestRunMergeLabelsAndDeduplicates(t *testing.T) {
 }
 
 func TestRunMergeSourceErrorIsLabeled(t *testing.T) {
-	first := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	first := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		_, _ = io.WriteString(w, fixtureBody())
 	}))
 	defer first.Close()
-	second := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+	second := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
 		http.Error(w, "boom", http.StatusInternalServerError)
 	}))
 	defer second.Close()

@@ -108,7 +108,7 @@ func looksLikeStructuredConfig(text string) bool {
 
 	hasProxies := false
 	hasConfigKey := false
-	for _, line := range strings.Split(text, "\n") {
+	for line := range strings.SplitSeq(text, "\n") {
 		line = strings.TrimSpace(line)
 		switch {
 		case strings.HasPrefix(line, "proxies:"):

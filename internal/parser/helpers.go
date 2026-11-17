@@ -70,9 +70,9 @@ func isPrintableText(s string) bool {
 }
 
 // cutFragment splits "#name" off a URI body and percent-decodes the name.
-func cutFragment(s string) (body, fragment string) {
-	if i := strings.IndexByte(s, '#'); i >= 0 {
-		return s[:i], decodeComponent(s[i+1:])
+func cutFragment(s string) (string, string) {
+	if body, fragment, ok := strings.Cut(s, "#"); ok {
+		return body, decodeComponent(fragment)
 	}
 	return s, ""
 }
@@ -282,8 +282,8 @@ func schemeOf(line string) string {
 }
 
 func fragmentName(line string) string {
-	if i := strings.IndexByte(line, '#'); i >= 0 {
-		return decodeComponent(line[i+1:])
+	if _, fragment, ok := strings.Cut(line, "#"); ok {
+		return decodeComponent(fragment)
 	}
 	return ""
 }

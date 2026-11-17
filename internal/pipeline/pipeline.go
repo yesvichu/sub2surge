@@ -4,9 +4,10 @@
 package pipeline
 
 import (
+	"cmp"
 	"fmt"
 	"regexp"
-	"sort"
+	"slices"
 	"strconv"
 	"strings"
 
@@ -89,16 +90,14 @@ func Apply(proxies []model.Proxy, opts Options) ([]model.Proxy, []string, error)
 
 	result = uniqueNames(result)
 	if opts.Sort {
-		sort.SliceStable(result, func(i, j int) bool {
-			left := strings.ToLower(result[i].Name)
-			right := strings.ToLower(result[j].Name)
-			if left != right {
-				return left < right
+		slices.SortStableFunc(result, func(a, b model.Proxy) int {
+			if c := cmp.Compare(strings.ToLower(a.Name), strings.ToLower(b.Name)); c != 0 {
+				return c
 			}
-			if result[i].Server != result[j].Server {
-				return result[i].Server < result[j].Server
+			if c := cmp.Compare(a.Server, b.Server); c != 0 {
+				return c
 			}
-			return result[i].Port < result[j].Port
+			return cmp.Compare(a.Port, b.Port)
 		})
 	}
 

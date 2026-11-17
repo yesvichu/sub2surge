@@ -1,3 +1,5 @@
+// Package parser turns subscription payloads and proxy URIs into the
+// canonical model the pipeline works on.
 package parser
 
 // UnsupportedError marks a node that is valid but cannot be represented on the

@@ -25,6 +25,7 @@ import (
 // Version is reported in headers and logs.
 const Version = version.Version
 
+// Server serves converted profiles over HTTP, one route per subscription.
 type Server struct {
 	cfg         config.Config
 	subs        map[string]config.Sub
@@ -93,7 +94,7 @@ func (s *Server) ConvertProfile(ctx context.Context, name string, query map[stri
 	if includeRules {
 		extraGroups = surgefile.DefaultProxyGroupsFor(result.names, selection)
 	}
-	return surgefile.RenderProfile(result.lines, result.names, surgefile.ProfileOptions{
+	return surgefile.RenderProfile(result.lines, surgefile.ProfileOptions{
 		ManagedConfigURL: managedURL,
 		Title:            "Sub2Surge export",
 		Rules:            surgefile.RulesFor(includeRules, selection),
@@ -375,7 +376,7 @@ func renderProfile(r *http.Request, result *prepared) string {
 	if includeRules {
 		extraGroups = surgefile.DefaultProxyGroupsFor(result.names, selection)
 	}
-	return surgefile.RenderProfile(result.lines, result.names, surgefile.ProfileOptions{
+	return surgefile.RenderProfile(result.lines, surgefile.ProfileOptions{
 		ManagedConfigURL: absoluteURL(r),
 		Title:            "Sub2Surge profile",
 		Rules:            surgefile.RulesFor(includeRules, selection),
@@ -468,7 +469,7 @@ type previewResponse struct {
 	Skipped          []model.Skip `json:"skipped,omitempty"`
 	Warnings         []string     `json:"warnings,omitempty"`
 	Cache            string       `json:"cache"`
-	FetchedAt        time.Time    `json:"fetched_at,omitempty"`
+	FetchedAt        time.Time    `json:"fetched_at,omitzero"`
 	UnsupportedCount int          `json:"unsupported_count"`
 }
 
@@ -487,11 +488,13 @@ func absoluteURL(r *http.Request) string {
 		scheme = "https"
 	}
 	if forwarded := r.Header.Get("X-Forwarded-Proto"); forwarded != "" {
-		scheme = strings.TrimSpace(strings.Split(forwarded, ",")[0])
+		first, _, _ := strings.Cut(forwarded, ",")
+		scheme = strings.TrimSpace(first)
 	}
 	host := r.Host
 	if forwarded := r.Header.Get("X-Forwarded-Host"); forwarded != "" {
-		host = strings.TrimSpace(strings.Split(forwarded, ",")[0])
+		first, _, _ := strings.Cut(forwarded, ",")
+		host = strings.TrimSpace(first)
 	}
 	return scheme + "://" + host + r.URL.RequestURI()
 }

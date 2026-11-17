@@ -1,3 +1,5 @@
+// Command sub2surge converts a V2Ray subscription into a Surge profile, either
+// once from the command line or continuously over HTTP.
 package main
 
 import (

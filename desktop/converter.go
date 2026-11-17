@@ -151,7 +151,7 @@ func (c *Converter) Convert(ctx context.Context, req ConvertRequest) (ConvertRes
 	}
 
 	return ConvertResponse{
-		Config: surgefile.RenderProfile(result.Lines, result.Names, surgefile.ProfileOptions{
+		Config: surgefile.RenderProfile(result.Lines, surgefile.ProfileOptions{
 			Title:       "Sub2Surge export",
 			Rules:       surgefile.RulesFor(req.Rules, selection),
 			ExtraGroups: extraGroups(req.Rules, result.Names, selection),
