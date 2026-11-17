@@ -1,11 +1,11 @@
 :root {
   color-scheme: light dark;
-  --paper: #f3f4f0;
-  --panel: #fbfbf8;
-  --ink: #17191c;
-  --muted: #676d76;
-  --line: #d9dcd5;
-  --line-strong: #c6cac2;
+  --paper: #e4e3db;
+  --panel: #f0efe8;
+  --ink: #1c1e21;
+  --muted: #5b6067;
+  --line: #d0cec4;
+  --line-strong: #bab8ae;
   --accent: #1f5bff;
   --accent-ink: #ffffff;
   --spinner-track: rgba(255, 255, 255, 0.35);
@@ -16,7 +16,7 @@
   --code: #111417;
   --code-ink: #e6e8e3;
   --code-line: #2a2f36;
-  --grid: rgba(23, 25, 28, 0.055);
+  --grid: rgba(28, 30, 33, 0.05);
   --ring: rgba(31, 91, 255, 0.28);
   --radius: 14px;
   --font-ui: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI",
