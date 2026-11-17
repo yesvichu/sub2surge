@@ -463,6 +463,19 @@ go vet ./...
 gofmt -l .
 ```
 
+Lint 用 [golangci-lint](https://golangci-lint.run/) v2，配置在 `.golangci.yml`。
+`desktop/` 是独立 module，需要单独跑一遍：
+
+```bash
+golangci-lint run ./...
+cd desktop && golangci-lint run ./...
+```
+
+启用的检查里有两项和「现代 Go」相关：`modernize`（对应
+[JetBrains/go-modern-guidelines](https://github.com/JetBrains/go-modern-guidelines)）
+和 `revive`（已废弃的 golint 的继任者）。新增代码请按所声明的 Go 版本使用
+对应惯用法，例如 `slices.SortStableFunc`、`strings.Cut`、`max`、`t.Context()`。
+
 目录：
 
 ```

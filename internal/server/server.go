@@ -8,6 +8,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io"
 	"log"
 	"net/http"
 	"strconv"
@@ -173,10 +174,10 @@ func (s *Server) serveSubscription(w http.ResponseWriter, r *http.Request, name 
 	switch format {
 	case "profile":
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-		fmt.Fprint(w, renderProfile(r, result))
+		writeBody(w, renderProfile(r, result))
 	default:
 		w.Header().Set("Content-Type", "text/plain; charset=utf-8")
-		fmt.Fprint(w, renderList(result))
+		writeBody(w, renderList(result))
 	}
 }
 
@@ -471,6 +472,15 @@ type previewResponse struct {
 	Cache            string       `json:"cache"`
 	FetchedAt        time.Time    `json:"fetched_at,omitzero"`
 	UnsupportedCount int          `json:"unsupported_count"`
+}
+
+// writeBody writes a text response. The client may have gone away, which is
+// not an error this server can act on, but a short write means the body the
+// client sees is truncated and is worth reporting.
+func writeBody(w http.ResponseWriter, body string) {
+	if _, err := io.WriteString(w, body); err != nil {
+		log.Printf("write response: %v", err)
+	}
 }
 
 func writeJSON(w http.ResponseWriter, status int, value any) {

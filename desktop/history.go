@@ -205,13 +205,13 @@ func (s *historyStore) saveLocked() error {
 		return fmt.Errorf("create history file: %w", err)
 	}
 	tmpName := tmp.Name()
-	defer os.Remove(tmpName)
+	defer func() { _ = os.Remove(tmpName) }()
 	if err := tmp.Chmod(0o600); err != nil {
-		tmp.Close()
+		_ = tmp.Close()
 		return fmt.Errorf("secure history file: %w", err)
 	}
 	if _, err := tmp.Write(data); err != nil {
-		tmp.Close()
+		_ = tmp.Close()
 		return fmt.Errorf("write history: %w", err)
 	}
 	if err := tmp.Close(); err != nil {

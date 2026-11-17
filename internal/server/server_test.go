@@ -57,18 +57,15 @@ func newTestServer(t *testing.T, token string) (*httptest.Server, *int32) {
 func TestSubscriptionAndCache(t *testing.T) {
 	ts, hits := newTestServer(t, "")
 
-	response, err := http.Get(ts.URL + "/sub")
-	if err != nil {
-		t.Fatal(err)
+	res := get(t, ts.URL+"/sub")
+	body := res.body
+	if res.status != http.StatusOK {
+		t.Fatalf("status = %d, body = %s", res.status, body)
 	}
-	body := readAll(t, response)
-	if response.StatusCode != http.StatusOK {
-		t.Fatalf("status = %d, body = %s", response.StatusCode, body)
-	}
-	if got := response.Header.Get("X-Sub2surge-Count"); got != "3" {
+	if got := res.header.Get("X-Sub2surge-Count"); got != "3" {
 		t.Fatalf("count header = %q, want 3", got)
 	}
-	if got := response.Header.Get("X-Sub2surge-Skipped"); got != "1" {
+	if got := res.header.Get("X-Sub2surge-Skipped"); got != "1" {
 		t.Fatalf("skipped header = %q, want 1", got)
 	}
 	if !strings.Contains(body, "=vmess,") || !strings.Contains(body, "=trojan,") || !strings.Contains(body, "=vless,") {
@@ -85,13 +82,10 @@ func TestSubscriptionAndCache(t *testing.T) {
 	}
 
 	// The second request must use the cache.
-	response, err = http.Get(ts.URL + "/preview")
-	if err != nil {
-		t.Fatal(err)
-	}
-	previewBody := readAll(t, response)
-	if response.StatusCode != http.StatusOK {
-		t.Fatalf("preview status = %d, body = %s", response.StatusCode, previewBody)
+	res = get(t, ts.URL+"/preview")
+	previewBody := res.body
+	if res.status != http.StatusOK {
+		t.Fatalf("preview status = %d, body = %s", res.status, previewBody)
 	}
 	if *hits != 1 {
 		t.Fatalf("upstream hits after preview = %d, want 1", *hits)
@@ -111,13 +105,10 @@ func TestSubscriptionAndCache(t *testing.T) {
 
 func TestProfileOutput(t *testing.T) {
 	ts, _ := newTestServer(t, "")
-	response, err := http.Get(ts.URL + "/sub?format=profile")
-	if err != nil {
-		t.Fatal(err)
-	}
-	body := readAll(t, response)
-	if response.StatusCode != http.StatusOK {
-		t.Fatalf("status = %d, body = %s", response.StatusCode, body)
+	res := get(t, ts.URL+"/sub?format=profile")
+	body := res.body
+	if res.status != http.StatusOK {
+		t.Fatalf("status = %d, body = %s", res.status, body)
 	}
 	firstLine, _, _ := strings.Cut(body, "\n")
 	if !strings.HasPrefix(firstLine, "#!MANAGED-CONFIG ") || !strings.Contains(firstLine, "format=profile") {
@@ -129,11 +120,8 @@ func TestProfileOutput(t *testing.T) {
 		}
 	}
 
-	response, err = http.Get(ts.URL + "/sub?format=profile&rules=none")
-	if err != nil {
-		t.Fatal(err)
-	}
-	plain := readAll(t, response)
+	res = get(t, ts.URL+"/sub?format=profile&rules=none")
+	plain := res.body
 	if strings.Contains(plain, "GEOIP,CN") {
 		t.Fatalf("rules=none should not include default rules:\n%s", plain)
 	}
@@ -144,11 +132,8 @@ func TestProfileOutput(t *testing.T) {
 		t.Fatalf("rules=none should keep FINAL,DIRECT:\n%s", plain)
 	}
 
-	response, err = http.Get(ts.URL + "/sub?format=profile&groups=cn-ai")
-	if err != nil {
-		t.Fatal(err)
-	}
-	onlyCN := readAll(t, response)
+	res = get(t, ts.URL+"/sub?format=profile&groups=cn-ai")
+	onlyCN := res.body
 	for _, want := range []string{"DOMAIN-SUFFIX,deepseek.com,🇨🇳国产AI", "🇨🇳国产AI = select, DIRECT, ", "GEOIP,CN,DIRECT", "FINAL,DIRECT"} {
 		if !strings.Contains(onlyCN, want) {
 			t.Fatalf("groups=cn-ai missing %q:\n%s", want, onlyCN)
@@ -158,11 +143,8 @@ func TestProfileOutput(t *testing.T) {
 		t.Fatalf("groups=cn-ai should not define unselected groups:\n%s", onlyCN)
 	}
 
-	response, err = http.Get(ts.URL + "/sub?format=profile&groups=none")
-	if err != nil {
-		t.Fatal(err)
-	}
-	noGroups := readAll(t, response)
+	res = get(t, ts.URL+"/sub?format=profile&groups=none")
+	noGroups := res.body
 	if strings.Contains(noGroups, "🇨🇳国产AI =") || strings.Contains(noGroups, "✈️Telegram =") {
 		t.Fatalf("groups=none should not define extra groups:\n%s", noGroups)
 	}
@@ -228,14 +210,27 @@ func TestTokenAndValidation(t *testing.T) {
 	}
 }
 
-func readAll(t *testing.T, response *http.Response) string {
+// httpResult is what a test reads from a response once its body is closed.
+type httpResult struct {
+	status int
+	header http.Header
+	body   string
+}
+
+// get reads rawURL. The response body never leaves this function, so its
+// lifetime stays in one place.
+func get(t *testing.T, rawURL string) httpResult {
 	t.Helper()
-	defer response.Body.Close()
+	response, err := http.Get(rawURL)
+	if err != nil {
+		t.Fatal(err)
+	}
+	defer func() { _ = response.Body.Close() }()
 	body, err := io.ReadAll(response.Body)
 	if err != nil {
 		t.Fatal(err)
 	}
-	return string(body)
+	return httpResult{status: response.StatusCode, header: response.Header, body: string(body)}
 }
 
 func TestMergeQueryLabelsSources(t *testing.T) {
@@ -246,15 +241,12 @@ func TestMergeQueryLabelsSources(t *testing.T) {
 	}))
 	defer second.Close()
 
-	response, err := http.Get(ts.URL + "/sub?url2=" + url.QueryEscape(second.URL) + "&label1=A&label2=B")
-	if err != nil {
-		t.Fatal(err)
+	res := get(t, ts.URL+"/sub?url2="+url.QueryEscape(second.URL)+"&label1=A&label2=B")
+	body := res.body
+	if res.status != http.StatusOK {
+		t.Fatalf("status = %d, body = %s", res.status, body)
 	}
-	body := readAll(t, response)
-	if response.StatusCode != http.StatusOK {
-		t.Fatalf("status = %d, body = %s", response.StatusCode, body)
-	}
-	if got := response.Header.Get("X-Sub2surge-Sources"); got != "2" {
+	if got := res.header.Get("X-Sub2surge-Sources"); got != "2" {
 		t.Fatalf("sources header = %q, want 2", got)
 	}
 	for _, want := range []string{"A - HK VMess", "B - Node B"} {

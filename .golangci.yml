@@ -1,0 +1,23 @@
+version: "2"
+
+run:
+  timeout: 5m
+
+linters:
+  # standard is errcheck, govet, ineffassign, staticcheck and unused.
+  default: standard
+  enable:
+    - bodyclose      # a response body that is never closed
+    - copyloopvar    # loop copies that Go 1.22 made redundant
+    - errorlint      # %v on errors, and == instead of errors.Is
+    - misspell       # typos in comments and strings
+    - modernize      # the modern-Go analyzers, see JetBrains/go-modern-guidelines
+    - nilerr         # returning nil after checking a non-nil error
+    - revive         # the maintained successor to golint
+    - unconvert      # redundant conversions
+    - usetesting     # t.Context() and friends instead of the older helpers
+
+formatters:
+  enable:
+    - gofmt
+    - goimports

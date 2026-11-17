@@ -135,7 +135,7 @@ func (f *Fetcher) download(ctx context.Context, rawURL, userAgent string) (Resul
 	if err != nil {
 		return Result{}, sanitizedError(rawURL, err)
 	}
-	defer response.Body.Close()
+	defer func() { _ = response.Body.Close() }()
 
 	if response.StatusCode < 200 || response.StatusCode >= 300 {
 		return Result{}, fmt.Errorf("upstream returned HTTP %d", response.StatusCode)
@@ -164,7 +164,7 @@ func sanitizedError(rawURL string, err error) error {
 	}
 	var urlErr *url.Error
 	if errors.As(err, &urlErr) {
-		return fmt.Errorf("request %s failed: %v", host, urlErr.Err)
+		return fmt.Errorf("request %s failed: %w", host, urlErr.Err)
 	}
-	return fmt.Errorf("request %s failed: %v", host, err)
+	return fmt.Errorf("request %s failed: %w", host, err)
 }
