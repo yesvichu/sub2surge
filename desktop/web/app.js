@@ -93,6 +93,55 @@
     }
     els.status.textContent = text;
     els.status.dataset.kind = kind || "busy";
+    // The panel scrolls; an error below the fold is one nobody reads.
+    if (kind === "error") {
+      els.status.scrollIntoView({ block: "nearest" });
+    }
+  }
+
+  // errorHint turns the failure into something to do about it, since the
+  // message alone rarely says what to try next.
+  function errorHint(message) {
+    const text = String(message || "");
+    if (/HTTP 401|HTTP 403/.test(text)) {
+      return (
+        "订阅服务器拒绝了这次请求，常见原因：链接已失效或过期、token 不正确，" +
+        "或者 User-Agent 被屏蔽（可在「高级选项」里改一个再试）。"
+      );
+    }
+    if (/HTTP 404/.test(text)) {
+      return "订阅地址不存在，检查链接是否完整，有没有被截断。";
+    }
+    if (/HTTP 429/.test(text)) {
+      return "请求太频繁，被订阅服务器限流了，稍等一会儿再试。";
+    }
+    if (/HTTP 5\d\d/.test(text)) {
+      return "订阅服务器自己出错了，通常是临时故障，稍后重试。";
+    }
+    if (/timeout|deadline|超时/i.test(text)) {
+      return "请求超时，检查网络能否打开订阅地址。";
+    }
+    if (/没有可转换的节点/.test(text)) {
+      return "订阅内容里没有 Surge 能表示的节点，展开「查看跳过的节点」可以看到每个节点被跳过的原因。";
+    }
+    if (/被 Surge 拒绝/.test(text)) {
+      return "配置没有写入 Surge，原配置保持不变。可先点「保存文件」导出，再用 Surge 手动导入排查。";
+    }
+    if (/重载失败/.test(text)) {
+      return "配置已经写进 Surge，只是热重载没成功。可以再点一次「写入 Surge 并生效」，或在 Surge 菜单里手动重新加载配置。";
+    }
+    return "详细信息显示在下方状态栏。";
+  }
+
+  // reportFailure puts the error in front of the user instead of only in a
+  // panel that may be scrolled out of view.
+  async function reportFailure(message) {
+    setStatus(message, "error");
+    try {
+      await call("Converter.Alert", message, errorHint(message));
+    } catch {
+      // The inline status above is the fallback when no dialog can be shown.
+    }
   }
 
   function setBusy(busy) {
@@ -168,7 +217,7 @@
       setStatus(`已写入「${res.profile_name}」并让 Surge 重载生效${backup}。`, "ok");
       loadSurgeStatus();
     } catch (err) {
-      setStatus((err && err.message) || String(err), "error");
+      await reportFailure((err && err.message) || String(err));
     } finally {
       setBusy(false);
     }
@@ -606,7 +655,7 @@
       els.summary.hidden = true;
       els.summary.textContent = "";
       renderPreview();
-      setStatus((err && err.message) || String(err), "error");
+      await reportFailure((err && err.message) || String(err));
     } finally {
       setBusy(false);
     }

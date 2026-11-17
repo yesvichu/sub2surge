@@ -219,6 +219,23 @@ func (c *Converter) ClearHistory() ([]HistoryEntry, error) {
 	return c.history.clear()
 }
 
+// Alert shows a native dialog for a failure the user must not miss, such as an
+// upstream that refuses the subscription. The page passes the short message and
+// a longer hint; the detail is where the actionable advice goes.
+func (c *Converter) Alert(ctx context.Context, message, detail string) error {
+	if strings.TrimSpace(message) == "" {
+		return nil
+	}
+	_, err := mygo.Dialog.Message(mygo.MessageOptions{
+		Parent:  mygo.CallerWindow(ctx),
+		Type:    mygo.MessageError,
+		Message: message,
+		Detail:  detail,
+		Buttons: []string{"知道了"},
+	})
+	return err
+}
+
 // Version is shown in the footer.
 func (c *Converter) Version() string {
 	return version.Version
