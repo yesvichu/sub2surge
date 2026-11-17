@@ -1,0 +1,73 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+# Nothing here writes to the repository.
+permissions:
+  contents: read
+
+# A new push to the same branch supersedes the run in flight.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  lint-and-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      # desktop/go.mod asks for the newest toolchain, and it builds the root
+      # module's Go 1.24 code too.
+      - uses: actions/setup-go@v7
+        with:
+          go-version-file: desktop/go.mod
+          cache-dependency-path: |
+            go.sum
+            desktop/go.sum
+
+      - name: gofmt
+        run: |
+          unformatted="$(gofmt -l .)"
+          if [ -n "$unformatted" ]; then
+            echo "these files need gofmt:"
+            echo "$unformatted"
+            exit 1
+          fi
+
+      - name: go vet
+        run: |
+          go vet ./...
+          (cd desktop && go vet ./...)
+
+      # desktop is its own module, so it is linted separately. Both runs pick
+      # up the .golangci.yml at the repository root.
+      - name: golangci-lint
+        uses: golangci/golangci-lint-action@v9
+        with:
+          version: v2.15.0
+
+      - name: golangci-lint (desktop)
+        uses: golangci/golangci-lint-action@v9
+        with:
+          version: v2.15.0
+          working-directory: desktop
+
+      # The race detector needs cgo, which the Linux runner provides; it is
+      # the part of this job that is slow enough to skip locally.
+      - name: go test -race
+        run: |
+          go test -race ./...
+          (cd desktop && go test -race ./...)
+
+      # Compiling for the platforms the README claims to support, without
+      # paying for their runners.
+      - name: cross-compile
+        run: |
+          for os in windows linux; do
+            GOOS=$os GOARCH=amd64 go build ./... || exit 1
+            (cd desktop && GOOS=$os GOARCH=amd64 go build ./...) || exit 1
+          done

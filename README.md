@@ -1,5 +1,7 @@
 # sub2surge
 
+[![CI](https://github.com/yesvichu/sub2surge/actions/workflows/ci.yml/badge.svg)](https://github.com/yesvichu/sub2surge/actions/workflows/ci.yml)
+
 把 **v2ray 订阅链接** 转成 **Surge 可导入的 `.conf` 文件 / 节点列表**。
 
 ![Sub2Surge 桌面端](desktop/screenshot.png)
