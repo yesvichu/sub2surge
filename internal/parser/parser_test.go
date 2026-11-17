@@ -145,13 +145,14 @@ func TestParseHysteria2PortHopping(t *testing.T) {
 	}
 }
 
-func TestParseRejectsClashConfig(t *testing.T) {
-	_, err := Parse([]byte("proxies:\n  - name: a\n    type: ss\nproxy-groups:\n  - name: b\n"))
-	if err == nil {
-		t.Fatal("expected an error for Clash YAML")
+// Clash YAML used to be rejected outright; it is now a supported input.
+func TestParseAcceptsClashConfig(t *testing.T) {
+	result, err := Parse([]byte("proxies:\n  - name: a\n    type: ss\n    server: s.example.com\n    port: 443\n    cipher: aes-128-gcm\n    password: pw\nproxy-groups:\n  - name: b\n    type: select\n"))
+	if err != nil {
+		t.Fatalf("Clash YAML should parse now: %v", err)
 	}
-	if !strings.Contains(err.Error(), "Clash") {
-		t.Fatalf("unexpected error: %v", err)
+	if len(result.Proxies) != 1 || result.Proxies[0].Name != "a" {
+		t.Fatalf("unexpected result: %+v", result)
 	}
 }
 

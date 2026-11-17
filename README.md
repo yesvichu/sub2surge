@@ -255,7 +255,19 @@ http://127.0.0.1:8080/sub?format=profile
 
 ## 支持范围
 
-| 上游 URI | Surge 输出 | 说明 |
+### 上游格式
+
+| 输入 | 说明 |
+| --- | --- |
+| v2ray URI 列表 | base64 编码或逐行 URI（v2rayN 等订阅的标准形态） |
+| Clash / mihomo YAML | 读取顶层 `proxies:` 列表，按下面的协议表转换；不读 `proxy-groups` / `rules` |
+| Surge / Shadowrocket 配置 | 读取 `[Proxy]` 段；两者共用这套语法，所以 Shadowrocket 的配置可直接投进来 |
+
+Clash 或 Surge 内容本身是 base64 也能识别（部分机场会这样封装）。
+
+### 协议
+
+| 上游 URI / 节点类型 | Surge 输出 | 说明 |
 | --- | --- | --- |
 | `ss://` | ✅ | SIP002 / 传统全 base64；simple-obfs (`obfs=http/tls`)；shadow-tls；AES-GCM/2022/流加密白名单 |
 | `vmess://` | ✅ | TCP / WebSocket；AEAD；TLS；不支持 gRPC、H2、HTTPUpgrade、REALITY |
@@ -497,7 +509,8 @@ desktop/                   MyGo 桌面应用（独立 Go module）
 
 ### 已知限制
 
-- 只接受 v2ray URI 订阅（base64 或逐行 URI），**不接受 Clash/mihomo YAML**
+- 只读 Clash 的 `proxies:` 和 Surge/Shadowrocket 的 `[Proxy]`；不转换策略组与规则，`proxy-providers` 里的远程节点也不会展开
+- Clash 的 `v2ray-plugin`、`gost-plugin` 插件以及 `snell`、`http` 节点没有 Surge 对应写法，会被列入跳过
 - 只输出 Surge，不输出 Clash/Loon/QX
 - 桌面端支持 macOS 12+ / Windows 10+ / Linux（GTK3），以 MyGo 的支持范围为准
 - 不做规则/策略组/分流转换

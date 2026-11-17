@@ -8,15 +8,16 @@ import (
 	"github.com/yesvichu/sub2surge/internal/model"
 )
 
-// Parse turns a v2ray-style subscription body into canonical proxies.
+// Parse turns a subscription body into canonical proxies.
 //
 // Accepted inputs:
-//   - a base64 blob of proxy URIs (the usual v2rayN/Clash "subscription" body)
+//   - a base64 blob of proxy URIs (the usual v2rayN subscription body)
 //   - one URI per line, optionally with comments
+//   - a Clash/mihomo YAML profile, whose "proxies" list is read
+//   - a Surge or Shadowrocket profile, whose [Proxy] section is read
 //
-// It deliberately does not accept Clash/mihomo YAML: converting that needs a
-// full YAML parser and is better served by passing the original subscription
-// URL, which usually also serves the URI form for v2ray User-Agents.
+// A Clash or Surge body can also be base64 encoded; the decoded form is
+// detected the same way.
 func Parse(body []byte) (*model.Result, error) {
 	text := strings.TrimPrefix(string(body), "\ufeff")
 	text = strings.ReplaceAll(text, "\r\n", "\n")
@@ -25,18 +26,18 @@ func Parse(body []byte) (*model.Result, error) {
 		return nil, errors.New("empty subscription body")
 	}
 
-	if looksLikeStructuredConfig(text) {
-		return nil, errors.New("input looks like a Clash/sing-box config, not a v2ray URI subscription; pass the original subscription URL or ask the provider for a v2ray-format link")
+	if result, ok, err := parseStructured(text); ok {
+		return result, err
 	}
 
-	if !strings.Contains(text, "://") {
+	if !strings.Contains(text, "://") && !looksLikeSurgeConfig(text) {
 		decoded, ok := decodeBase64Text(text)
 		if !ok {
 			return nil, errors.New("subscription is neither a proxy URI list nor valid base64; check the URL and the request User-Agent")
 		}
 		text = decoded
-		if looksLikeStructuredConfig(text) {
-			return nil, errors.New("decoded subscription is a Clash/sing-box config, not a v2ray URI list")
+		if result, ok, err := parseStructured(text); ok {
+			return result, err
 		}
 	}
 	if !strings.Contains(text, "://") {
@@ -91,6 +92,23 @@ func Parse(body []byte) (*model.Result, error) {
 	return result, nil
 }
 
+// parseStructured handles bodies that are not URI lists. It reports ok=false
+// when the body is a plain URI list, which the caller then reads line by line.
+func parseStructured(text string) (*model.Result, bool, error) {
+	if looksLikeSurgeConfig(text) {
+		result, err := ParseSurgeConfig([]byte(text))
+		return result, true, err
+	}
+	if looksLikeClash(text) {
+		result, err := ParseClash([]byte(text))
+		return result, true, err
+	}
+	if looksLikeStructuredConfig(text) {
+		return nil, true, errors.New("input is a sing-box or other structured config this tool cannot read; pass a Clash YAML, a Surge/Shadowrocket profile, or a v2ray URI list")
+	}
+	return nil, false, nil
+}
+
 func isComment(line string) bool {
 	return strings.HasPrefix(line, "#") ||
 		strings.HasPrefix(line, "//") ||
@@ -106,19 +124,15 @@ func looksLikeStructuredConfig(text string) bool {
 		return strings.Contains(trimmed, `"outbounds"`) || strings.Contains(trimmed, `"proxies"`)
 	}
 
-	hasProxies := false
-	hasConfigKey := false
 	for line := range strings.SplitSeq(text, "\n") {
 		line = strings.TrimSpace(line)
 		switch {
-		case strings.HasPrefix(line, "proxies:"):
-			hasProxies = true
 		case strings.HasPrefix(line, "proxy-groups:"),
 			strings.HasPrefix(line, "rules:"),
 			strings.HasPrefix(line, "rule-providers:"),
 			strings.HasPrefix(line, "outbounds:"):
-			hasConfigKey = true
+			return true
 		}
 	}
-	return hasProxies && hasConfigKey
+	return false
 }

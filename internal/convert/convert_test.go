@@ -173,3 +173,57 @@ func TestRunMergeSourceErrorIsLabeled(t *testing.T) {
 		t.Fatalf("error should name source B: %v", err)
 	}
 }
+
+// Clash and Shadowrocket bodies must convert through the same pipeline and
+// come out as Surge lines, not just parse.
+func TestRunConvertsStructuredSubscriptions(t *testing.T) {
+	clash := `proxies:
+  - {name: "SS-A", type: ss, server: ss.example.com, port: 8388, cipher: aes-256-gcm, password: pw, udp: true}
+  - {name: "VM-B", type: vmess, server: vm.example.com, port: 443, uuid: 11111111-2222-3333-4444-555555555555, tls: true, servername: cdn.example.com, network: ws, ws-opts: {path: /ws, headers: {Host: cdn.example.com}}}
+  - {name: "SSR-C", type: ssr, server: ssr.example.com, port: 443, cipher: aes-256-cfb, password: pw}
+`
+	shadowrocket := `[Proxy]
+HY-A = hysteria2, hy.example.com, 443, password=hypw, sni=hy.example.com
+TR-B = trojan, tr.example.com, 443, password=trpw, sni=tr.example.com
+[Rule]
+FINAL,DIRECT
+`
+
+	cases := map[string]struct{ body string }{
+		"clash":        {clash},
+		"shadowrocket": {shadowrocket},
+	}
+
+	for name, tc := range cases {
+		t.Run(name, func(t *testing.T) {
+			upstream := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
+				_, _ = io.WriteString(w, tc.body)
+			}))
+			defer upstream.Close()
+
+			result, err := New(time.Hour, "ua").Run(context.Background(), Request{URL: upstream.URL})
+			if err != nil {
+				t.Fatalf("Run: %v", err)
+			}
+
+			lines := strings.Join(result.Lines, "\n")
+			if name == "clash" {
+				for _, want := range []string{"SS-A=ss,", "VM-B=vmess,", "ws=true", "ws-path=/ws"} {
+					if !strings.Contains(lines, want) {
+						t.Fatalf("missing %q:\n%s", want, lines)
+					}
+				}
+				// SSR cannot be expressed by Surge and must be reported.
+				if len(result.Skipped) != 1 || result.Skipped[0].Name != "SSR-C" {
+					t.Fatalf("skips = %+v", result.Skipped)
+				}
+			} else {
+				for _, want := range []string{"HY-A=hysteria2,", "TR-B=trojan,"} {
+					if !strings.Contains(lines, want) {
+						t.Fatalf("missing %q:\n%s", want, lines)
+					}
+				}
+			}
+		})
+	}
+}
