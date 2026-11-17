@@ -42,6 +42,7 @@
     filename: $("filename"),
     counts: $("counts"),
     version: $("version"),
+    themeOptions: Array.from(document.querySelectorAll(".theme-option")),
     tabs: Array.from(document.querySelectorAll(".segment")),
   };
 
@@ -151,6 +152,37 @@
     const label = els.convert.querySelector(".button-label");
     if (label) label.textContent = busy ? "转换中…" : "转换";
     syncButtons();
+  }
+
+  function markTheme(mode) {
+    for (const option of els.themeOptions) {
+      option.setAttribute(
+        "aria-pressed",
+        option.dataset.theme === mode ? "true" : "false"
+      );
+    }
+  }
+
+  // The appearance itself is the app's, not the page's: forcing light or dark
+  // changes what prefers-color-scheme reports, so the CSS follows on its own.
+  function loadTheme() {
+    return call("Converter.Theme")
+      .then((mode) => {
+        const known = els.themeOptions.some((o) => o.dataset.theme === mode);
+        markTheme(known ? mode : "system");
+      })
+      .catch(() => markTheme("system"));
+  }
+
+  async function setTheme(mode) {
+    markTheme(mode);
+    try {
+      const stored = await call("Converter.SetTheme", mode);
+      markTheme(stored);
+    } catch (err) {
+      setStatus((err && err.message) || String(err), "error");
+      loadTheme();
+    }
   }
 
   function syncButtons() {
@@ -711,6 +743,9 @@
   }
 
   els.save.addEventListener("click", save);
+  for (const option of els.themeOptions) {
+    option.addEventListener("click", () => setTheme(option.dataset.theme));
+  }
   els.surgeApply.addEventListener("click", applyToSurge);
   els.historyClear.addEventListener("click", clearHistory);
   els.copy.addEventListener("click", copy);
@@ -764,6 +799,7 @@
   syncMergeFields(false);
   loadRuleGroups();
   loadHistory();
+  loadTheme();
   loadSurgeStatus();
   syncGroupsDisabled();
   renderPreview();

@@ -20,8 +20,9 @@ import (
 // Converter is the Go service the frontend calls. Every exported method is
 // available to the page as Converter.<method>.
 type Converter struct {
-	service *convert.Service
-	history *historyStore
+	service  *convert.Service
+	history  *historyStore
+	settings *settingsStore
 
 	// Surge is detected on first use, so startup runs no subprocess.
 	surgeMu      sync.Mutex
@@ -44,8 +45,9 @@ func NewConverter() *Converter {
 // it to keep their history out of the real user data directory.
 func newConverter(dir string) *Converter {
 	return &Converter{
-		service: convert.New(time.Hour, "v2rayN/6.31"),
-		history: newHistoryStore(filepath.Join(dir, historyFilename)),
+		service:  convert.New(time.Hour, "v2rayN/6.31"),
+		history:  newHistoryStore(filepath.Join(dir, historyFilename)),
+		settings: newSettingsStore(filepath.Join(dir, settingsFilename)),
 	}
 }
 
@@ -217,6 +219,27 @@ func (c *Converter) ForgetHistory(id string) ([]HistoryEntry, error) {
 // ClearHistory removes every entry from the history.
 func (c *Converter) ClearHistory() ([]HistoryEntry, error) {
 	return c.history.clear()
+}
+
+// Theme returns the appearance preference: "system", "light" or "dark".
+func (c *Converter) Theme() string {
+	return c.settings.theme()
+}
+
+// applyTheme hands the appearance to the app. mygo.Theme.SetSource waits for
+// the event loop, so tests replace this instead of starting one.
+var applyTheme = func(mode string) { mygo.Theme.SetSource(mygo.ThemeSource(mode)) }
+
+// SetTheme stores the appearance preference and applies it. Forcing light or
+// dark changes the app's appearance, which is also what the page's
+// prefers-color-scheme sees, so the page needs no theme CSS of its own.
+func (c *Converter) SetTheme(mode string) (string, error) {
+	stored, err := c.settings.setTheme(mode)
+	if err != nil {
+		return stored, err
+	}
+	applyTheme(stored)
+	return stored, nil
 }
 
 // Alert shows a native dialog for a failure the user must not miss, such as an

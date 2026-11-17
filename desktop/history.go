@@ -1,18 +1,15 @@
 package main
 
 import (
-	"bytes"
 	"cmp"
 	"crypto/sha256"
 	"encoding/hex"
-	"encoding/json/jsontext"
 	"encoding/json/v2"
 	"errors"
 	"fmt"
 	"log"
 	"net/url"
 	"os"
-	"path/filepath"
 	"slices"
 	"strings"
 	"sync"
@@ -191,36 +188,11 @@ func (s *historyStore) clear() ([]HistoryEntry, error) {
 
 // saveLocked replaces the file atomically. Callers hold s.mu.
 func (s *historyStore) saveLocked() error {
-	if err := os.MkdirAll(filepath.Dir(s.path), 0o700); err != nil {
-		return fmt.Errorf("create history dir: %w", err)
-	}
-	var buf bytes.Buffer
-	encoder := jsontext.NewEncoder(&buf, jsontext.WithIndent("  "))
-	if err := json.MarshalEncode(encoder, s.entries); err != nil {
+	data, err := marshalIndented(s.entries, "  ")
+	if err != nil {
 		return fmt.Errorf("encode history: %w", err)
 	}
-	data := buf.Bytes()
-	tmp, err := os.CreateTemp(filepath.Dir(s.path), ".history-*.tmp")
-	if err != nil {
-		return fmt.Errorf("create history file: %w", err)
-	}
-	tmpName := tmp.Name()
-	defer func() { _ = os.Remove(tmpName) }()
-	if err := tmp.Chmod(0o600); err != nil {
-		_ = tmp.Close()
-		return fmt.Errorf("secure history file: %w", err)
-	}
-	if _, err := tmp.Write(data); err != nil {
-		_ = tmp.Close()
-		return fmt.Errorf("write history: %w", err)
-	}
-	if err := tmp.Close(); err != nil {
-		return fmt.Errorf("close history: %w", err)
-	}
-	if err := os.Rename(tmpName, s.path); err != nil {
-		return fmt.Errorf("replace history: %w", err)
-	}
-	return nil
+	return writeFileAtomic(s.path, data, 0o600)
 }
 
 func historyFromRequest(req ConvertRequest, nodes int) HistoryEntry {

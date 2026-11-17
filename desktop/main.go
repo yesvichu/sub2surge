@@ -21,7 +21,12 @@ func main() {
 
 	mygo.SetFrontend(web)
 	mygo.App.SetName("Sub2Surge")
-	mygo.Bind(NewConverter())
+
+	converter := NewConverter()
+	// The saved appearance has to be in place before the window exists,
+	// otherwise the first frame paints with the system's and then switches.
+	mygo.Theme.SetSource(mygo.ThemeSource(converter.Theme()))
+	mygo.Bind(converter)
 
 	mygo.App.WhenReady(func() {
 		mygo.NewWindow(mygo.WindowOptions{
