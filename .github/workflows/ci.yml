@@ -16,7 +16,9 @@ concurrency:
 
 jobs:
   lint-and-test:
-    runs-on: ubuntu-latest
+    # Pinned rather than ubuntu-latest: the label is being moved to Ubuntu 26,
+    # and a base image change should be a deliberate commit.
+    runs-on: ubuntu-24.04
     steps:
       - uses: actions/checkout@v7
 
