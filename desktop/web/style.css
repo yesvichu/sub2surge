@@ -13,9 +13,13 @@
   --ok: #0f7a4f;
   --danger: #b42318;
   --warn: #a15c00;
-  --code: #111417;
-  --code-ink: #e6e8e3;
-  --code-line: #2a2f36;
+  --code: #f3f2ea;
+  --code-ink: #22252a;
+  --code-line: #d9d5c9;
+  --code-muted: #636973;
+  --code-soft: rgba(28, 30, 33, 0.055);
+  --code-active: rgba(28, 30, 33, 0.075);
+  --code-hover: #b3af9f;
   --grid: rgba(28, 30, 33, 0.05);
   --ring: rgba(31, 91, 255, 0.28);
   --radius: 14px;
@@ -43,6 +47,10 @@
     --code: #0d0f12;
     --code-ink: #dfe3dc;
     --code-line: #242a31;
+    --code-muted: #8c949f;
+    --code-soft: rgba(255, 255, 255, 0.02);
+    --code-active: rgba(255, 255, 255, 0.09);
+    --code-hover: #525b66;
     --grid: rgba(232, 234, 230, 0.045);
     --ring: rgba(107, 140, 255, 0.35);
   }
@@ -989,7 +997,7 @@ summary:focus-visible,
   padding: 3px;
   border: 1px solid var(--code-line);
   border-radius: 8px;
-  background: rgba(255, 255, 255, 0.02);
+  background: var(--code-soft);
 }
 
 .segment {
@@ -998,14 +1006,14 @@ summary:focus-visible,
   border: 0;
   border-radius: 5px;
   background: transparent;
-  color: #8c949f;
+  color: var(--code-muted);
   font: inherit;
   font-size: 12px;
   cursor: pointer;
 }
 
 .segment.active {
-  background: rgba(255, 255, 255, 0.09);
+  background: var(--code-active);
   color: var(--code-ink);
 }
 
@@ -1019,7 +1027,7 @@ summary:focus-visible,
   display: flex;
   align-items: center;
   gap: 6px;
-  color: #8c949f;
+  color: var(--code-muted);
   font-size: 11.5px;
   cursor: pointer;
   user-select: none;
@@ -1035,11 +1043,11 @@ summary:focus-visible,
 
 .output-head .button.quiet {
   border-color: var(--code-line);
-  color: #9aa2ad;
+  color: var(--code-muted);
 }
 
 .output-head .button.quiet:hover:not(:disabled) {
-  border-color: #525b66;
+  border-color: var(--code-hover);
   color: var(--code-ink);
 }
 
@@ -1065,7 +1073,7 @@ summary:focus-visible,
 }
 
 .preview-empty {
-  color: #6f7782;
+  color: var(--code-muted);
   font-family: var(--font-ui);
   font-size: 13px;
 }
@@ -1078,7 +1086,7 @@ summary:focus-visible,
   gap: 12px;
   padding: 10px 14px;
   border-top: 1px solid var(--code-line);
-  color: #8c949f;
+  color: var(--code-muted);
   font-size: 11.5px;
 }
 
